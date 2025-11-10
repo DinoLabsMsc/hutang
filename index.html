@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transaksi Dynotic</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Outfit",sans-serif;}
+html,body{
+  min-height:100%;
+  width:100%;
+  background:linear-gradient(160deg,#000000,#2a0030,#4b0082);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  color:#f5f3ff;
+  overflow-x:hidden;
+}
+h1{
+  margin:20px 0;
+  font-size:clamp(2rem,4vw,3rem);
+  text-align:center;
+  text-shadow:0 0 8px rgba(0,0,0,0.3);
+}
+.search-box{
+  width:95%;
+  max-width:1200px;
+  border-radius:12px;
+  padding:12px 20px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.15);
+  margin-bottom:20px;
+}
+.search-box input{
+  width:100%;
+  border:none;
+  outline:none;
+  background:transparent;
+  color:#fff;
+  font-size:1.1rem;
+  padding:8px 0;
+}
+.table-container{
+  width:95%;
+  max-width:1200px;
+  flex-grow:1;
+  overflow-x:auto;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:auto;
+  min-width:600px;
+  background:transparent;
+}
+th,td{
+  padding:14px 10px;
+  border:1px solid #fff;
+  text-align:center;
+  word-wrap:break-word;
+  background:rgba(0,0,0,0.2);
+  color:#fff;
+}
+th{
+  background:rgba(0,0,0,0.4);
+  font-weight:700;
+  font-size:1.05rem;
+}
+td{
+  font-size:1rem;
+}
+tr:hover td{
+  background:rgba(0,0,0,0.35);
+}
+.no-result{
+  text-align:center;
+  margin-top:15px;
+  color:#f0a;
+  display:none;
+}
+.pagination{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  margin:15px 0 25px;
+  flex-wrap:wrap;
+}
+.pagination button{
+  cursor:pointer;
+  padding:8px 18px;
+  border-radius:12px;
+  background: rgba(255,255,255,0.1);
+  color:#fff;
+  font-weight:600;
+  border:1px solid rgba(255,255,255,0.25);
+  transition: all 0.25s ease;
+}
+.pagination button:hover{
+  background: rgba(255,255,255,0.3);
+  transform: scale(1.05);
+}
+.pagination button:disabled{
+  opacity:0.4;
+  cursor:not-allowed;
+  background: rgba(255,255,255,0.05);
+}
+footer{
+  padding:12px 10px;
+  font-size:0.85rem;
+  color: rgba(255,255,255,0.6);
+  text-align:center;
+}
+
+/* Mobile Responsive */
+@media (max-width:992px){
+  th,td{
+    font-size:0.9rem;
+    padding:10px 6px;
+  }
+  .search-box{
+    padding:10px 14px;
+  }
+  .pagination button{
+    padding:6px 12px;
+    font-size:0.85rem;
+  }
+}
+@media (max-width:576px){
+  th,td{
+    font-size:0.8rem;
+    padding:8px 4px;
+  }
+  .search-box input{
+    font-size:0.9rem;
+  }
+}
+</style>
+</head>
+<body>
+
+<h1>Daftar Transaksi</h1>
+<div class="search-box">
+  <input type="text" id="searchInput" placeholder="Cari berdasarkan Tanggal atau Jumlah Bayar...">
+</div>
+
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>Tanggal</th>
+        <th>Jumlah Bayar</th>
+        <th>Bukti</th>
+      </tr>
+    </thead>
+    <tbody id="transactionList"></tbody>
+  </table>
+</div>
+
+<p class="no-result" id="noResult">Data tidak ditemukan.</p>
+
+<div class="pagination">
+  <button id="prevBtn">Previous</button>
+  <button id="nextBtn">Next</button>
+</div>
+
+<footer>© 2025 Dynotic ID</footer>
+
+<script>
+const itemsPerPage = 10;
+let currentPage = 1;
+let transactions = [];
+let filteredTransactions = [];
+
+const transactionList = document.getElementById('transactionList');
+const searchInput = document.getElementById('searchInput');
+const noResult = document.getElementById('noResult');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+async function loadData(){
+  try{
+    const response = await fetch('provider.json?_=' + new Date().getTime()); 
+    const rawData = await response.json();
+    transactions = rawData.map(item => ({
+      tanggal: item["Tanggal"] || "-",
+      jumlah_bayar: item["Jumlah Bayar"] ? "Rp" + item["Jumlah Bayar"].toLocaleString("id-ID") : "-",
+      bukti: item["Bukti"] || "-"
+    }));
+
+    transactions.reverse();
+    filteredTransactions = [...transactions];
+    renderTransactions();
+  }catch(err){
+    console.error("Gagal load provider.json", err);
+  }
+}
+
+function renderTransactions(){
+  transactionList.innerHTML = '';
+  const start = (currentPage-1)*itemsPerPage;
+  const end = start + itemsPerPage;
+  const pageItems = filteredTransactions.slice(start,end);
+  noResult.style.display = pageItems.length===0?'block':'none';
+
+  pageItems.forEach(t=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${t.tanggal}</td>
+      <td>${t.jumlah_bayar}</td>
+      <td>${t.bukti}</td>
+    `;
+    transactionList.appendChild(tr);
+  });
+
+  prevBtn.disabled = currentPage===1;
+  nextBtn.disabled = currentPage>=Math.ceil(filteredTransactions.length/itemsPerPage);
+}
+
+let searchTimeout;
+searchInput.addEventListener('input',()=>{
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(()=>{
+    const query = searchInput.value.toLowerCase();
+    filteredTransactions = transactions.filter(t =>
+      t.tanggal.toLowerCase().includes(query) ||
+      t.jumlah_bayar.toLowerCase().includes(query)
+    );
+    currentPage = 1;
+    renderTransactions();
+  },150);
+});
+
+prevBtn.addEventListener('click',()=>{
+  if(currentPage>1){currentPage--;renderTransactions();}
+});
+nextBtn.addEventListener('click',()=>{
+  if(currentPage<Math.ceil(filteredTransactions.length/itemsPerPage)){currentPage++;renderTransactions();}
+});
+
+setInterval(loadData, 30000);
+loadData();
+</script>
+
+</body>
+</html>
