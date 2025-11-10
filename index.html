@@ -70,6 +70,13 @@ th{
 td{
   font-size:1rem;
 }
+td a{
+  color:#00ffff;
+  text-decoration:none;
+}
+td a:hover{
+  text-decoration:underline;
+}
 tr:hover td{
   background:rgba(0,0,0,0.35);
 }
@@ -184,7 +191,7 @@ async function loadData(){
     const rawData = await response.json();
     transactions = rawData.map(item => ({
       tanggal: item["Tanggal"] || "-",
-      jumlah_bayar: item["Jumlah Bayar"] ? "Rp" + item["Jumlah Bayar"].toLocaleString("id-ID") : "-",
+      jumlah_bayar: item["Jumlah Bayar"] || "-",
       bukti: item["Bukti"] || "-"
     }));
 
@@ -205,10 +212,13 @@ function renderTransactions(){
 
   pageItems.forEach(t=>{
     const tr = document.createElement('tr');
+    const buktiHTML = t.bukti && t.bukti !== "-" 
+      ? `<a href="${t.bukti}" target="_blank">Lihat</a>` 
+      : "-";
     tr.innerHTML = `
       <td>${t.tanggal}</td>
       <td>${t.jumlah_bayar}</td>
-      <td>${t.bukti}</td>
+      <td>${buktiHTML}</td>
     `;
     transactionList.appendChild(tr);
   });
